@@ -17,12 +17,14 @@ class AtlasAgent:
     def process(self, text: str):
 
         plan = self.planner.plan(text)
+        print("PLAN =", plan)
 
         # Если Planner решил просто ответить
         if plan.get("tool") == "chat":
             return ask(text)
 
         results = self.executor.execute(plan)
+        print("RESULTS =", results)
 
         if results is None:
             return ask(text)
@@ -31,5 +33,6 @@ class AtlasAgent:
 
         for result in results:
             answer.append(str(result))
+        print("ANSWER =", answer)
 
         return "\n\n".join(answer)

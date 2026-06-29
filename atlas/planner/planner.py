@@ -29,6 +29,24 @@ SYSTEM_PROMPT = """
     "content":"print('Hello')"
 }
 
+Если пользователь просит создать, написать или сгенерировать файл,
+ты ОБЯЗАН использовать инструмент write_file.
+
+Поле "content" должно содержать ПОЛНОЕ содержимое файла.
+
+Например:
+
+Пользователь:
+Создай hello.py
+
+Ответ:
+
+{
+    "tool": "write_file",
+    "filename": "hello.py",
+    "content": "print('Hello World')"
+}
+
 3. list_files
 
 Пример:
@@ -59,11 +77,23 @@ SYSTEM_PROMPT = """
 
 class Planner:
 
-    def plan(self, text: str):
+   def plan(self, text: str):
 
     prompt = SYSTEM_PROMPT + "\n\nПользователь:\n" + text
 
     response = ask(prompt)
+    response = response.strip()
+
+    if response.startswith("```json"):
+        response = response.replace("```json", "", 1)
+
+    if response.startswith("```"):
+        response = response.replace("```", "", 1)
+
+    if response.endswith("```"):
+        response = response[:-3]
+
+    response = response.strip()
 
     print("\n===== PLAN =====")
     print(response)
@@ -71,18 +101,9 @@ class Planner:
 
     try:
         data = json.loads(response)
-
-        if "steps" in data:
-            return data
+        return data
 
     except Exception:
-        pass
-
-    return {
-        "steps": [
-            {
-                "tool": "chat",
-                "text": text,
-            }
-        ]
-    }
+        return {
+            "tool": "chat"
+        }
