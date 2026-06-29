@@ -1,18 +1,55 @@
-from atlas.tools.loader import load_tools
-from atlas.tools.registry import get
-
-
 class Executor:
 
-    def __init__(self):
+    def __init__(self, tools):
+        self.tools = tools
 
-        load_tools()
+    def execute(self, plan):
 
-    def run(self, tool_name, **kwargs):
+        results = []
 
-        tool = get(tool_name)
+        # Старый формат
+        if "tool" in plan:
 
-        if tool is None:
-            return f"Инструмент '{tool_name}' не найден."
+            tool = plan["tool"]
 
-        return tool.execute(**kwargs)
+            if tool == "chat":
+                return None
+
+            result = self.tools.execute(
+                tool,
+                **{
+                    k: v
+                    for k, v in plan.items()
+                    if k != "tool"
+                }
+            )
+
+            results.append(result)
+
+            return results
+
+        # Новый формат
+        for step in plan["steps"]:
+
+            tool = step["tool"]
+
+            if tool == "chat":
+                continue
+
+            result = self.tools.execute(
+                tool,
+                **{
+                    k: v
+                    for k, v in step.items()
+                    if k != "tool"
+                }
+            )
+
+            results.append(result)
+
+            # Если инструмент завершился ошибкой —
+            # прекращаем выполнение плана.
+            if not result.success:
+                break
+
+        return results

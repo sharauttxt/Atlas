@@ -1,4 +1,6 @@
+from atlas.reasoner.reasoner import Reasoner
 from atlas.ai.manager import ask
+from atlas.executor.executor import Executor
 from atlas.planner.planner import Planner
 from atlas.tools.manager import ToolManager
 
@@ -9,19 +11,25 @@ class AtlasAgent:
 
         self.planner = Planner()
         self.tools = ToolManager()
+        self.executor = Executor(self.tools)
+        self.reasoner = Reasoner()
 
     def process(self, text: str):
 
         plan = self.planner.plan(text)
 
-        if plan["tool"] == "chat":
+        # Если Planner решил просто ответить
+        if plan.get("tool") == "chat":
             return ask(text)
 
-        return self.tools.execute(
-            plan["tool"],
-            **{
-                k: v
-                for k, v in plan.items()
-                if k != "tool"
-            }
-        )
+        results = self.executor.execute(plan)
+
+        if results is None:
+            return ask(text)
+
+        answer = []
+
+        for result in results:
+            answer.append(str(result))
+
+        return "\n\n".join(answer)
